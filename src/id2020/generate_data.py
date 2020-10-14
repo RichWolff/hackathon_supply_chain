@@ -92,7 +92,7 @@ print(component_counts)
 # Join a component batch to fg batches
 component_lots = defaultdict(dict)
 for component, num_of_batches in component_counts.items():
-    quantities = np.random.normal(1000, 15, num_of_batches).astype(int)
+    quantities = np.random.normal(1000, 10, num_of_batches).astype(int)
     for quantity in quantities:
         uid = str(uuid.uuid1())
         component_lots[uid]['component'] = component
@@ -108,10 +108,14 @@ for batch in tqdm.tqdm(list(fg_batches.items())):
     components = fg_components[batch[1]['product']]['components']
     quantity = batch[1]['quantity']
     
+    # loop through each component in product
     for component in components:
+        # Get quantity needed for batch
         current_batch_qty = quantity
-    
+
+        # If current_batch_qty > 0 , pull units from a component lot
         while current_batch_qty > 0:
+            # Get list of potentail componenet batches
             potential_component_batches = list(filter(lambda x: x[1]['component'] == component, list(component_lots.items())))
             if len(potential_component_batches) == 0:
                 uid = str(uuid.uuid1())
@@ -119,20 +123,18 @@ for batch in tqdm.tqdm(list(fg_batches.items())):
                 component_lots[uid]['component'] = component
                 component_lots[uid]['quantity'] = int(quantity)
             
-            potential_component_batches = list(filter(lambda x: x[1]['component'] == component, list(component_lots.items())))
-            try:
-                take_from = min([
-                    current_batch_qty,
-                    int(np.random.normal(25, 3))
-                ])
+                potential_component_batches = list(filter(lambda x: x[1]['component'] == component, list(component_lots.items())))
 
-                # Get batch
-                compBatch = random.choice(potential_component_batches)
-                compLot = component_lots[compBatch[0]]
-                compLot['quantity'] -= take_from
-            except Exception as e:
-                print(compLot)
-                raise Exception(e)
+            take_from = min([
+                current_batch_qty,
+                int(np.random.normal(25, 3))
+            ])
+
+            # Get batch
+            compBatch = random.choice(potential_component_batches)
+            compLot = component_lots[compBatch[0]]
+            compLot['quantity'] -= take_from
+
 
             if compLot['quantity'] <= 0:
                 component_lots.pop(compBatch[0])
@@ -140,6 +142,9 @@ for batch in tqdm.tqdm(list(fg_batches.items())):
             edges.append((batch[0], compBatch[0], component, take_from))
             current_batch_qty -= take_from
 
-    # %%
+# %%
+edges2 = [', '.join([str(e) for e in edge]) + str('\n') for edge in edges]
+with open('edges.csv', 'w') as f:
+    f.writelines(edges2)
 
 # %%
